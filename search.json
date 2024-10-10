@@ -1,0 +1,62 @@
+[
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "evr",
+    "section": "",
+    "text": "This file will become your README and also the index of your documentation.",
+    "crumbs": [
+      "evr"
+    ]
+  },
+  {
+    "objectID": "index.html#developer-guide",
+    "href": "index.html#developer-guide",
+    "title": "evr",
+    "section": "Developer Guide",
+    "text": "Developer Guide\nIf you are new to using nbdev here are some useful pointers to get you started.\n\nInstall evr in Development mode\n# make sure evr package is installed in development mode\n$ pip install -e .\n\n# make changes under nbs/ directory\n# ...\n\n# compile to have changes apply to evr\n$ nbdev_prepare",
+    "crumbs": [
+      "evr"
+    ]
+  },
+  {
+    "objectID": "index.html#usage",
+    "href": "index.html#usage",
+    "title": "evr",
+    "section": "Usage",
+    "text": "Usage\n\nInstallation\nInstall latest from the GitHub repository:\n$ pip install git+https://github.com/bilalcodehub/evr.git\nor from conda\n$ conda install -c bilalcodehub evr\nor from pypi\n$ pip install evr\n\n\nDocumentation\nDocumentation can be found hosted on this GitHub repository’s pages. Additionally you can find package manager specific guidelines on conda and pypi respectively.",
+    "crumbs": [
+      "evr"
+    ]
+  },
+  {
+    "objectID": "index.html#how-to-use",
+    "href": "index.html#how-to-use",
+    "title": "evr",
+    "section": "How to use",
+    "text": "How to use\nFill me in please! Don’t forget code examples:\n\n1+1\n\n2",
+    "crumbs": [
+      "evr"
+    ]
+  },
+  {
+    "objectID": "core.html",
+    "href": "core.html",
+    "title": "core",
+    "section": "",
+    "text": "source\n\nfoo\n\n foo ()",
+    "crumbs": [
+      "core"
+    ]
+  },
+  {
+    "objectID": "split.html",
+    "href": "split.html",
+    "title": "split",
+    "section": "",
+    "text": "#export\nimport subprocess\nfrom fastai.vision.all import *\nfrom tqdm import tqdm\nimport cv2\nimport argparse\n\n\n#export\ndef extract_frames_from_video(video_path, output_dir, unique_capture_name, interval=1):\n    \"\"\"\n    Extracts frames from a given video using ffmpeg at a specified interval and saves them to the output directory.\n    If interval is set to -1, all frames from the video are extracted.\n\n    Args:\n        video_path (Path): Path to the input video file.\n        output_dir (Path): Directory to save the extracted frames.\n        unique_capture_name (str): Name of the unique capture folder to include in the frame filenames.\n        interval (int): Interval in seconds to extract frames. If -1, extract all frames.\n\n    Returns:\n        None\n    \"\"\"\n    video_name = video_path.stem\n    output_dir.mkdir(parents=True, exist_ok=True)\n\n    # Define the ffmpeg command to extract frames\n    frame_output_pattern = f\"{output_dir}/{unique_capture_name}_{video_name}_%04d.jpg\"\n    command = [\n        'ffmpeg',\n        '-i', str(video_path),\n        '-vf', f'fps=1/{interval}' if interval != -1 else '',\n        '-q:v', '2',\n        frame_output_pattern\n    ]\n\n    # Run the ffmpeg command using subprocess with suppressed output\n    subprocess.run([arg for arg in command if arg], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)\n\n\n#export\ndef process_dataset_videos(dataset_root_path='dataset', interval=1):\n    \"\"\"\n    Process all videos in the dataset directory and extract frames to a frames folder using a single progress bar.\n\n    Args:\n        dataset_root_path (str): Path to the main dataset directory. Default is 'dataset'.\n        interval (int): Interval in seconds to extract frames from videos. If -1, extract all frames.\n\n    Returns:\n        None\n    \"\"\"\n    dataset_root_path = Path(dataset_root_path)\n    videos_dir = dataset_root_path / 'videos'\n    frames_dir = dataset_root_path / 'frames'\n\n    video_files = get_files(videos_dir, extensions='.mp4')\n\n    with tqdm(total=len(video_files), desc=\"Extracting frames from all videos\", unit='video') as pbar:\n        for capture_folder in videos_dir.ls():\n            if capture_folder.is_dir(): \n                print(f\"Processing folder: {capture_folder.name}\")\n                video_files_in_folder = get_files(capture_folder, extensions='.mp4')\n\n                for video_path in video_files_in_folder:\n                    extract_frames_from_video(video_path, frames_dir, capture_folder.name, interval)\n                    pbar.update(1)\n\n\n#export\ndef main():\n    \"\"\"\n    Main function to handle command-line arguments and execute the frame extraction process.\n    \"\"\"\n    parser = argparse.ArgumentParser(description=\"Extract frames from videos in the dataset directory.\")\n    parser.add_argument('--dataset_root_path', type=str, default='../temset', help='Path to the dataset directory containing videos.')\n    parser.add_argument('--interval', type=int, default=1, help='Interval in seconds for frame extraction. Use -1 to extract all frames.')\n\n    args = parser.parse_args()\n    process_dataset_videos(args.dataset_root_path, args.interval)\n\nif __name__ == \"__main__\":\n    main()",
+    "crumbs": [
+      "split"
+    ]
+  }
+]
