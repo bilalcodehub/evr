@@ -1,0 +1,6 @@
+Name,Accuracy,F1 Score
+Closure,0.98 ± 0.14,0.98 ± 0.01
+Dissection,0.97 ± 0.17,0.97 ± 0.00
+Scope Removal,1.00 ± 0.05,0.99 ± 0.01
+Setup,0.98 ± 0.13,0.94 ± 0.05
+Specimen Removal,1.00 ± 0.04,0.95 ± 0.05

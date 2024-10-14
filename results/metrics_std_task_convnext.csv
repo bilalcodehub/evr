@@ -1,0 +1,13 @@
+Name,Accuracy,F1 Score
+Circular Muscle Dissection,0.99 ± 0.11,0.96 ± 0.04
+Instrument,1.00 ± 0.02,0.94 ± 0.06
+Landmarking,0.99 ± 0.07,0.98 ± 0.02
+Longitudinal Muscle Dissection,0.99 ± 0.11,0.97 ± 0.02
+Mucosal Dissection,0.98 ± 0.14,0.95 ± 0.04
+Pressure,0.99 ± 0.07,0.93 ± 0.07
+Scope,0.99 ± 0.10,0.96 ± 0.04
+Scope removal,1.00 ± 0.03,1.00 ± 0.00
+Site,1.00 ± 0.06,0.83 ± 0.17
+Specimen Removal,1.00 ± 0.03,0.98 ± 0.02
+Submucosal Dissection,0.98 ± 0.14,0.96 ± 0.03
+Suturing,0.99 ± 0.09,0.99 ± 0.00

@@ -151,4 +151,12 @@ checklink/cookies.txt
 # Quarto
 .quarto
 
-temset/
+# Ignore video files
+*.mp4
+
+# Ignore image files
+*.jpeg
+*.jpg
+
+# Ignore pickle files
+*.pkl
