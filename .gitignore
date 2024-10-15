@@ -160,3 +160,6 @@ checklink/cookies.txt
 
 # Ignore pickle files
 *.pkl
+
+# Ignore zip files
+*.zip
