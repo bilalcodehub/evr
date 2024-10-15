@@ -7,9 +7,10 @@ __all__ = ['create_microclips', 'process_microclip', 'extract_clip', 'parse_file
 from pathlib import Path
 import subprocess
 from fastai.vision.all import *
+from multiprocessing import Pool
 
 # %% ../nbs/03_microclips.ipynb 3
-def create_microclips(dataroot_path, offset=120, fps=1, n_workers=4):
+def create_microclips(dataroot_path, offset=120, fps=1, scale_factor=0, n_workers=4):
     """
     Create microclips (small mp4 files) from frames.
 
@@ -17,6 +18,9 @@ def create_microclips(dataroot_path, offset=120, fps=1, n_workers=4):
     - `dataroot_path` (`str` or `Path`): Root path of the data directory.
     - `offset` (`int`): Number of seconds of video until the anchor frame.
     - `fps` (`int`): Frames per second for the extracted microclip.
+    - `scale_factor` (`int`): Factor to scale the microclip dimensions.
+        - `2` means half the height and width.
+        - `0` or `-1` means original size.
     - `n_workers` (`int`): Number of worker processes to use.
 
     Returns:
@@ -41,11 +45,26 @@ def create_microclips(dataroot_path, offset=120, fps=1, n_workers=4):
             'timestamp': timestamp
         })
 
-    parallel(process_microclip, data, microclips_dir=microclips_dir, dataroot_path=dataroot_path,
-             offset=offset, fps=fps, n_workers=n_workers, temp_dir=temp_dir)
+    # Prepare arguments for parallel processing
+    args = [
+        (
+            item,
+            microclips_dir,
+            dataroot_path,
+            offset,
+            fps,
+            temp_dir,
+            scale_factor
+        )
+        for item in data
+    ]
 
-#| export
-def process_microclip(item, microclips_dir, dataroot_path, offset, fps, temp_dir):
+    # Use multiprocessing Pool to process microclips in parallel
+    with Pool(processes=n_workers) as pool:
+        pool.starmap(process_microclip, args)
+
+# %% ../nbs/03_microclips.ipynb 4
+def process_microclip(item, microclips_dir, dataroot_path, offset, fps, temp_dir, scale_factor):
     """
     Process a single microclip.
 
@@ -56,6 +75,7 @@ def process_microclip(item, microclips_dir, dataroot_path, offset, fps, temp_dir
     - `offset` (`int`): Number of seconds of video until the anchor frame.
     - `fps` (`int`): Frames per second for the extracted microclip.
     - `temp_dir` (`Path`): Directory for temporary files.
+    - `scale_factor` (`int`): Factor to scale the microclip dimensions.
 
     Returns:
     - `None`
@@ -76,20 +96,24 @@ def process_microclip(item, microclips_dir, dataroot_path, offset, fps, temp_dir
         return
 
     start_time = max(0, timestamp - offset)
-    duration = timestamp - start_time
+    duration = offset  # Duration is the offset since we want the clip leading up to the timestamp
 
     if duration <= 0:
-        print(f"Invalid duration for {video_path}: start_time={start_time}, timestamp={timestamp}")
+        print(f"Invalid duration for {video_path}: start_time={start_time}, duration={duration}")
         return
 
     temp_video_path = temp_dir / f'{frame_path.stem}_temp.mp4'
 
-    extract_clip(video_path, start_time, duration, temp_video_path, fps)
+    extract_clip(video_path, start_time, duration, temp_video_path, fps, scale_factor)
 
-    temp_video_path.replace(microclip_path)
+    try:
+        temp_video_path.replace(microclip_path)
+        print(f"Successfully created microclip: {microclip_path}")
+    except Exception as e:
+        print(f"Error moving {temp_video_path} to {microclip_path}: {e}")
 
-# %% ../nbs/03_microclips.ipynb 4
-def extract_clip(video_path, start_time, duration, output_path, fps):
+# %% ../nbs/03_microclips.ipynb 5
+def extract_clip(video_path, start_time, duration, output_path, fps, scale_factor):
     """
     Extract a clip from the video.
 
@@ -99,21 +123,41 @@ def extract_clip(video_path, start_time, duration, output_path, fps):
     - `duration` (`float`): Duration in seconds.
     - `output_path` (`Path`): Path to save the extracted clip.
     - `fps` (`int`): Frames per second for the extracted clip.
+    - `scale_factor` (`int`): Factor to scale the microclip dimensions.
 
     Returns:
     - `None`
     """
-    command = [
-        'ffmpeg', '-ss', str(start_time), '-i', str(video_path),
-        '-t', str(duration), '-vf', f'fps={fps}',
-        '-c:v', 'libx264', '-an', '-y', str(output_path),
-        '-hide_banner', '-loglevel', 'error'
+    # Base FFmpeg command
+    ffmpeg_cmd = [
+        'ffmpeg',
+        '-ss', str(start_time),
+        '-i', str(video_path),
+        '-t', str(duration),
+        '-vf', f'fps={fps}',
+        '-c:v', 'libx264',
+        '-an',  # No audio
+        '-y',  # Overwrite output files without asking
+        str(output_path),
+        '-hide_banner',
+        '-loglevel', 'error'
     ]
-    result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    # If scale_factor is greater than 1, add scaling to the video filter
+    if scale_factor > 1:
+        # Calculate new width and height based on the scale factor
+        # FFmpeg allows dynamic scaling using expressions
+        scale_filter = f'scale=iw/{scale_factor}:ih/{scale_factor}'
+        # Combine fps and scale filters
+        ffmpeg_cmd[8] = f'fps={fps}, {scale_filter}'  # Update the -vf parameter
+
+    result = subprocess.run(ffmpeg_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
     if result.returncode != 0:
         print(f"Failed to extract clip from {video_path} to {output_path}")
+        print(f"FFmpeg Error: {result.stderr}")
 
-# %% ../nbs/03_microclips.ipynb 5
+# %% ../nbs/03_microclips.ipynb 6
 def parse_filename(filename):
     """
     Parse the filename to extract surgery name, video name, and timestamp.
@@ -138,3 +182,26 @@ def parse_filename(filename):
         raise ValueError(f"Expected a timestamp at the end of '{filename}', but got '{timestamp_str}'.")
     video_name = '_'.join(parts[1:-1])
     return surgery_name, video_name, timestamp
+
+# %% ../nbs/03_microclips.ipynb 7
+# Example usage:
+if __name__ == "__main__":
+    dataroot_path = '../temset'  # Your actual data root path
+
+    # Generate microclips with default size (original dimensions)
+    create_microclips(
+        dataroot_path=dataroot_path,
+        offset=60,    # Number of seconds until the anchor frame
+        fps=1,        # Frames per second for the extracted microclip
+        scale_factor=0,  # No scaling, original size
+        n_workers=4    # Number of worker processes to use
+    )
+
+    # To generate microclips with scaled-down size (e.g., half the size)
+    create_microclips(
+        dataroot_path=dataroot_path,
+        offset=60,
+        fps=1,
+        scale_factor=4,  # Scales the video to half the width and height
+        n_workers=1
+    )
